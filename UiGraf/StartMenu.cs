@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,58 +13,107 @@ namespace UiGraf
 {
     public partial class StartMenu : Form
     {
-        private List<Label> _labels;
-        private bool _isMouseDown;
+        private List<string> _textFromFile;
+        private int[,] _matr;
+        private int _size;
+        private bool[] _visited;
+        private Queue<int> _answer;
+
         public StartMenu()
         {
-            _labels = new List<Label>();
+            _textFromFile = new List<string>();
+            _answer = new Queue<int>();
             InitializeComponent();
-
-            //Graphics gr = e.Graphics;
-            //Pen p = new Pen(Color.Blue, 5);// цвет линии и ширина
-            //Point p1 = new Point(5, 10);// первая точка
-            //Point p2 = new Point(40, 100);// вторая точка
-            //gr.DrawLine(p, p1, p2);// рисуем линию
-            //gr.Dispose();// освобождаем все ресурсы, связанные с отрисовкой
-
         }
 
-        private void StartMenu_MouseClick(object sender, MouseEventArgs e)
+        private void openFileToolStrip_Click(object sender, EventArgs e)
         {
-            AddLable(e);
-        }
-
-        private void AddLable(MouseEventArgs e)
-        {
-            Label label = new Label();
-            label.Text = (_labels.Count + 1).ToString();
-            label.BackColor = Color.LightGreen;
-            label.Location = new Point(e.X, e.Y);
-            label.Size = new Size(33, 40);
-            label.AutoSize = true;
-            label.Font = new Font("Segoe UI", 22, FontStyle.Bold);
-            Controls.Add(label);
-            _labels.Add(label);
-        }
-
-        private void label1_MouseMove(object sender, MouseEventArgs e)
-        {
-            _isMouseDown = true;
-        }
-
-        private void label1_MouseUp(object sender, MouseEventArgs e)
-        {
-            Control c = sender as Control;
-            if (_isMouseDown)
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                c.Location = this.PointToClient(Control.MousePosition);
+                openFileDialog.InitialDirectory = Environment.SpecialFolder.Desktop.ToString();
+                openFileDialog.DefaultExt = "txt";
+                openFileDialog.Filter = "|*.txt";
+                openFileDialog.RestoreDirectory = true;
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    using (StreamReader reader = new StreamReader(openFileDialog.FileName))
+                    {
+                        while (reader.EndOfStream == false)
+                        {
+                            _textFromFile.Add(reader.ReadLine());
+                        }
+                    }
+                }
+            }
+            _size = _textFromFile.Count;
+            _visited = new bool[_size];
+            SetComboBoxValue();
+            MessageBox.Show("Теперь выбирая Стартовую вершину, можете увидеть работу алгоритма!");
+        }
+
+        private void SetComboBoxValue()
+        {
+            for (int i = 1; i <= _size; i++)
+            {
+                comboBoxWithStartVertex.Items.Add(i);
             }
         }
 
-        private void label1_MouseDown(object sender, MouseEventArgs e)
+        private void SetMatrix()
         {
-            _isMouseDown = false;
+            _matr = new int[_size, _size];
+            for (int i = 0; i < _size; i++)
+            {
+                string[] cells = _textFromFile[i].Split(' ');
+                for (int j = 0; j < _size; j++)
+                {
+                    _matr[i, j] = Convert.ToInt32(cells[j]);
+                }
+            }
         }
 
+        private void DFS(int st)
+        {
+            _answer.Enqueue(st + 1);
+            _visited[st] = true;
+            for (int i = 0; i < _size; i++)
+            {
+                if (_matr[st, i] != 0 && _visited[i] == false)
+                {
+                    DFS(i);
+                }
+            }
+        }
+
+        private void comboBoxWithStartVertex_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            SetMatrix();
+            DFS(Convert.ToInt32(comboBoxWithStartVertex.SelectedItem) - 1);
+
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < _size; i++)
+            {
+                builder.Append(_answer.Dequeue().ToString() + "-");
+            }
+
+            labelAnswer.Text = builder.ToString();
+            _answer.Clear();
+            for (int i = 0; i < _size; i++)
+            {
+                _visited[i] = false;
+            }
+        }
+
+        private void saveToolStrip_Click(object sender, EventArgs e)
+        {
+            using (SaveFileDialog saveFileDialog = new SaveFileDialog())
+            {
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    File.WriteAllText(saveFileDialog.FileName, labelAnswer.Text);
+                }
+            }
+        }
     }
 }
