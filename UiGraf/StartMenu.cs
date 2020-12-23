@@ -199,5 +199,17 @@ namespace UiGraf
             }
         }
 
+        private void button2_Click(object sender, EventArgs e)
+        {
+            _matr = null;
+            _size = 0;
+            _answer.Clear();
+            dataGridView1.RowCount = 0;
+            dataGridView1.ColumnCount = 0;
+            numericUpDown1.Value = numericUpDown1.Minimum;
+            _textFromFile.Clear();
+            _visited = null;
+            comboBoxWithStartVertex.Items.Clear();
+        }
     }
 }
