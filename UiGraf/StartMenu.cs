@@ -44,23 +44,33 @@ namespace UiGraf
                             _textFromFile.Add(reader.ReadLine());
                         }
                     }
+                    _size = _textFromFile.Count;
+                    numericUpDown1.Value = _size;
+                    SetStartValue();
+                    SetMatrixFromString();
+                    SetDataGridFromFile();
+                    BlockingMainDiagonal();
+                    MessageBox.Show("Теперь выбирая Стартовую вершину, можете увидеть работу алгоритма!");
                 }
             }
-            _size = _textFromFile.Count;
+        }
+
+        private void SetStartValue()
+        {
             _visited = new bool[_size];
             SetComboBoxValue();
-            MessageBox.Show("Теперь выбирая Стартовую вершину, можете увидеть работу алгоритма!");
         }
 
         private void SetComboBoxValue()
         {
+            comboBoxWithStartVertex.Items.Clear();
             for (int i = 1; i <= _size; i++)
             {
                 comboBoxWithStartVertex.Items.Add(i);
             }
         }
 
-        private void SetMatrix()
+        private void SetMatrixFromString()
         {
             _matr = new int[_size, _size];
             for (int i = 0; i < _size; i++)
@@ -86,22 +96,28 @@ namespace UiGraf
             }
         }
 
-        private void comboBoxWithStartVertex_SelectedIndexChanged(object sender, EventArgs e)
+        private void ShowWorkAlgorithm()
         {
-            SetMatrix();
-            DFS(Convert.ToInt32(comboBoxWithStartVertex.SelectedItem) - 1);
+            DFS(Convert.ToInt32(comboBoxWithStartVertex.SelectedIndex));
 
-            StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < _size; i++)
+            if (_answer.Count != 0)
             {
-                builder.Append(_answer.Dequeue().ToString() + "-");
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < _size; i++)
+                {
+                    builder.Append(_answer.Dequeue().ToString() + "-");
+                }
+
+                labelAnswer.Text = builder.ToString();
+                _answer.Clear();
+                for (int i = 0; i < _size; i++)
+                {
+                    _visited[i] = false;
+                }
             }
-
-            labelAnswer.Text = builder.ToString();
-            _answer.Clear();
-            for (int i = 0; i < _size; i++)
+            else
             {
-                _visited[i] = false;
+                MessageBox.Show("Путь не найдет, проверьте данные!");
             }
         }
 
@@ -115,5 +131,73 @@ namespace UiGraf
                 }
             }
         }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            _size = Convert.ToInt32(numericUpDown1.Value);
+            SetStartValue();
+            dataGridView1.RowCount = _size;
+            dataGridView1.ColumnCount = _size;
+            SetComboBoxValue();
+            BlockingMainDiagonal();
+        }
+
+        private void BlockingMainDiagonal()
+        {
+            for (int i = 0; i < _size; i++)
+            {
+                dataGridView1.Rows[i].Cells[i].Style.BackColor = Color.FromArgb(205, 92, 92);
+                dataGridView1.Rows[i].Cells[i].ReadOnly = true;
+            }
+        }
+
+        private void dataGridView1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            char key = e.KeyChar;
+            if ((key == 48 || key == 49) && key != 8)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void SetMatrixFromDataGrid()
+        {
+            _matr = new int[_size, _size];
+            for (int i = 0; i < _size; i++)
+            {
+                for (int j = 0; j < _size; j++)
+                {
+                    _matr[i, j] = Convert.ToInt32(dataGridView1[i, j].Value);
+                }
+            }
+        }
+
+        private void SetDataGridFromFile()
+        {
+            dataGridView1.RowCount = _size;
+            dataGridView1.ColumnCount = _size;
+
+            for (int i = 0; i < _size; i++)
+            {
+                for (int j = 0; j < _size; j++)
+                {
+                    dataGridView1[i, j].Value = _matr[i, j].ToString();
+                }
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (comboBoxWithStartVertex.SelectedIndex != -1)
+            {
+                SetMatrixFromDataGrid();
+                ShowWorkAlgorithm();
+            }
+            else
+            {
+                MessageBox.Show("Стартовая вершина пуста!");
+            }
+        }
+
     }
 }
