@@ -13,16 +13,9 @@ namespace UiGraf
 {
     public partial class StartMenu : Form
     {
-        private List<string> _textFromFile;
-        private int[,] _matr;
-        private int _size;
-        private bool[] _visited;
-        private Queue<int> _answer;
-
+        private Graf _graf;
         public StartMenu()
         {
-            _textFromFile = new List<string>();
-            _answer = new Queue<int>();
             InitializeComponent();
         }
 
@@ -37,6 +30,7 @@ namespace UiGraf
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
+                    List<string> _textFromFile = new List<string>();
                     using (StreamReader reader = new StreamReader(openFileDialog.FileName))
                     {
                         while (reader.EndOfStream == false)
@@ -44,10 +38,9 @@ namespace UiGraf
                             _textFromFile.Add(reader.ReadLine());
                         }
                     }
-                    _size = _textFromFile.Count;
-                    numericUpDown1.Value = _size;
-                    SetStartValue();
-                    SetMatrixFromString();
+                    _graf = new Graf(_textFromFile);
+                    numericUpDown1.Value = _graf.Size;
+                    SetComboBoxValue();
                     SetDataGridFromFile();
                     BlockingMainDiagonal();
                     MessageBox.Show("Теперь выбирая Стартовую вершину, можете увидеть работу алгоритма!");
@@ -55,67 +48,23 @@ namespace UiGraf
             }
         }
 
-        private void SetStartValue()
-        {
-            _visited = new bool[_size];
-            SetComboBoxValue();
-        }
-
         private void SetComboBoxValue()
         {
             comboBoxWithStartVertex.Items.Clear();
-            for (int i = 1; i <= _size; i++)
+            for (int i = 1; i <= _graf.Size; i++)
             {
                 comboBoxWithStartVertex.Items.Add(i);
             }
         }
 
-        private void SetMatrixFromString()
-        {
-            _matr = new int[_size, _size];
-            for (int i = 0; i < _size; i++)
-            {
-                string[] cells = _textFromFile[i].Split(' ');
-                for (int j = 0; j < _size; j++)
-                {
-                    _matr[i, j] = Convert.ToInt32(cells[j]);
-                }
-            }
-        }
-
-        private void DFS(int st)
-        {
-            _answer.Enqueue(st + 1);
-            _visited[st] = true;
-            for (int i = 0; i < _size; i++)
-            {
-                if (_matr[st, i] != 0 && _visited[i] == false)
-                {
-                    DFS(i);
-                }
-            }
-        }
-
         private void ShowWorkAlgorithm()
         {
-            DFS(Convert.ToInt32(comboBoxWithStartVertex.SelectedIndex));
-
-            if (_answer.Count != 0)
+            try
             {
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < _size; i++)
-                {
-                    builder.Append(_answer.Dequeue().ToString() + "-");
-                }
-
-                labelAnswer.Text = builder.ToString();
-                _answer.Clear();
-                for (int i = 0; i < _size; i++)
-                {
-                    _visited[i] = false;
-                }
+                _graf.SolveDFS(comboBoxWithStartVertex.SelectedIndex);
+                labelAnswer.Text = _graf.GetAnswer();
             }
-            else
+            catch (Exception)
             {
                 MessageBox.Show("Путь не найдет, проверьте данные!");
             }
@@ -134,17 +83,21 @@ namespace UiGraf
 
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
-            _size = Convert.ToInt32(numericUpDown1.Value);
-            SetStartValue();
-            dataGridView1.RowCount = _size;
-            dataGridView1.ColumnCount = _size;
+            int size = Convert.ToInt32(numericUpDown1.Value);
+            dataGridView1.RowCount = size;
+            dataGridView1.ColumnCount = size;
+            if (_graf == null)
+            {
+                _graf = new Graf(dataGridView1);
+            }
+           
             SetComboBoxValue();
             BlockingMainDiagonal();
         }
 
         private void BlockingMainDiagonal()
         {
-            for (int i = 0; i < _size; i++)
+            for (int i = 0; i < _graf.Size; i++)
             {
                 dataGridView1.Rows[i].Cells[i].Style.BackColor = Color.FromArgb(205, 92, 92);
                 dataGridView1.Rows[i].Cells[i].ReadOnly = true;
@@ -160,28 +113,16 @@ namespace UiGraf
             }
         }
 
-        private void SetMatrixFromDataGrid()
-        {
-            _matr = new int[_size, _size];
-            for (int i = 0; i < _size; i++)
-            {
-                for (int j = 0; j < _size; j++)
-                {
-                    _matr[i, j] = Convert.ToInt32(dataGridView1[i, j].Value);
-                }
-            }
-        }
-
         private void SetDataGridFromFile()
         {
-            dataGridView1.RowCount = _size;
-            dataGridView1.ColumnCount = _size;
+            dataGridView1.RowCount = _graf.Size;
+            dataGridView1.ColumnCount = _graf.Size;
 
-            for (int i = 0; i < _size; i++)
+            for (int i = 0; i < _graf.Size; i++)
             {
-                for (int j = 0; j < _size; j++)
+                for (int j = 0; j < _graf.Size; j++)
                 {
-                    dataGridView1[i, j].Value = _matr[i, j].ToString();
+                    dataGridView1[i, j].Value = _graf.GetValue(i, j).ToString();
                 }
             }
         }
@@ -190,7 +131,6 @@ namespace UiGraf
         {
             if (comboBoxWithStartVertex.SelectedIndex != -1)
             {
-                SetMatrixFromDataGrid();
                 ShowWorkAlgorithm();
             }
             else
@@ -201,15 +141,11 @@ namespace UiGraf
 
         private void button2_Click(object sender, EventArgs e)
         {
-            _matr = null;
-            _size = 0;
-            _answer.Clear();
             dataGridView1.RowCount = 0;
             dataGridView1.ColumnCount = 0;
             numericUpDown1.Value = numericUpDown1.Minimum;
-            _textFromFile.Clear();
-            _visited = null;
             comboBoxWithStartVertex.Items.Clear();
+            _graf = null;
         }
     }
 }
